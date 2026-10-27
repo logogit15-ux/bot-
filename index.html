@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sara Mahmoud</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Reem+Kufi:wght@600;700&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#3d3027;--blue:#d9c2a0;--soft:#f6eee3;--bg:#ffffff;--muted:#8c7b6b;--sx:-8px}
+  html[dir=ltr]{--sx:8px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Arabic',sans-serif}
+  html[lang=en] body{font-family:'Inter',sans-serif}
+  .wrap{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;font-size:15px;font-weight:600;gap:12px}
+  .hr{display:flex;align-items:center;gap:14px}
+  .lang{background:#fff;border:2px solid var(--ink);padding:4px 12px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+  .bar{height:12px;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);position:relative;background:#fff}
+  .bar i{position:absolute;top:0;bottom:0;inset-inline-start:0;width:0;background:var(--blue);transition:width .35s}
+  main{flex:1;padding:44px 20px 40px}
+  h1{font-family:'IBM Plex Sans Arabic',sans-serif;font-weight:600;font-size:30px;line-height:1.5;margin:0 0 8px}
+  html[lang=en] h1{font-family:'Space Grotesk',sans-serif;font-size:30px;line-height:1.25}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .opt{display:flex;align-items:center;gap:14px;width:100%;text-align:start;background:#fff;border:3px solid var(--ink);padding:14px;margin-bottom:14px;font:inherit;font-size:18px;color:var(--ink);cursor:pointer;transition:.12s}
+  .opt .k{flex:none;width:40px;height:40px;border:2px solid var(--ink);display:grid;place-items:center;font-weight:600;font-size:16px;font-family:'Inter',sans-serif}
+  .opt small{display:block;color:var(--muted);font-size:14px}
+  .opt.on{background:var(--soft);box-shadow:var(--sx) 8px 0 var(--blue);transform:translate(calc(var(--sx) * -.5),-4px)}
+  .opt.on .k{background:var(--ink);color:#fff}
+  .inp{width:100%;border:3px solid var(--ink);padding:18px;font:inherit;font-size:20px;color:var(--ink);background:#fff;box-shadow:var(--sx) 8px 0 var(--blue);outline:none;margin-bottom:14px}
+  textarea.inp{min-height:180px;resize:vertical;font-size:18px}
+  .actions{display:flex;align-items:center;gap:24px;margin-top:28px}
+  .next{flex:1;background:var(--blue);color:var(--ink);border:3px solid var(--ink);box-shadow:var(--sx) 8px 0 var(--ink);padding:16px;font:inherit;font-size:20px;font-weight:600;cursor:pointer}
+  .next:disabled{opacity:.5;cursor:not-allowed}
+  .back{background:none;border:0;border-bottom:2px solid var(--ink);font:inherit;font-size:18px;color:var(--ink);cursor:pointer;padding:0 0 2px}
+  .tag{font-size:14px;font-weight:500;border:2px solid var(--ink);padding:2px 10px;margin-inline-start:8px;vertical-align:middle;color:var(--muted);font-family:inherit}
+  .err{color:#c62828;font-size:15px;min-height:20px;margin:0}
+  .done{text-align:center;padding-top:60px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span id="brand"></span><span class="hr"><span id="count"></span><button class="lang" id="lang"></button></span></header>
+  <div class="bar"><i id="fill"></i></div>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ===== Settings / الإعدادات ===== */
+const CONFIG = {
+  brand: "Sara Mahmoud",
+  defaultLang: "auto",   // "ar" | "en" | "auto" (auto = حسب لغة المتصفح)
+  webhookUrl: "",        // رابط Google Apps Script / Zapier / Make (POST JSON)
+  whatsappNumber: "201023874936"
+};
+
+/* ===== Texts / النصوص ===== */
+const UI = {
+  ar:{next:"التالي", skip:"تخطّي", back:"الخلف", optional:"اختياري", send:"ابعت إجاباتي", sending:"جاري الإرسال...",
+      of:"من", other:"حاجة تانية", errAns:"من فضلك جاوب الأول", errPhone:"اكتب رقم واتساب صحيح", errSend:"حصلت مشكلة في الإرسال، جرّب تاني.",
+      thankTitle:"تمام، وصلتنا إجاباتك ✅", thankText:"هنراجع كل حاجة ونتواصل معاك على الواتساب قريب.", toggle:"English", num:true},
+  en:{next:"Next", skip:"Skip", back:"Back", optional:"Optional", send:"Send my answers", sending:"Sending...",
+      of:"of", other:"Something else", errAns:"Please answer first", errPhone:"Enter a valid WhatsApp number", errSend:"Something went wrong, please try again.",
+      thankTitle:"Got it, your answers are in ✅", thankText:"We'll review everything and reach out on WhatsApp soon.", toggle:"عربي", num:false}
+};
+
+/* options: [عربي, English, subعربي?, subEnglish?]  */
+const STEPS = [
+  {id:"name", type:"text",
+    title:{ar:"اسمك إيه؟", en:"What's your name?"},
+    placeholder:{ar:"اكتب اسمك هنا", en:"Type your name here"}},
+  {id:"field", type:"single", other:true,
+    title:{ar:"تمام يا {name}، البيزنس بتاعك في مجال إيه؟", en:"Nice to meet you, {name}! What field is your business in?"},
+    otherPlaceholder:{ar:"اكتب المجال هنا", en:"Type your field here"},
+    options:[["مطعم / كافيه","Restaurant / Café"],["عيادة / مركز طبي","Clinic / Medical center"],["تجارة / محل","Retail / Shop"],["تعليم / كورسات","Education / Courses"],["عقارات","Real estate"],["شركة خدمات","Service company"]]},
+  {id:"age", type:"single",
+    title:{ar:"البيزنس شغال بقاله قد إيه؟", en:"How long has your business been running?"},
+    options:[["لسه فكرة ومبدأتش","Just an idea, haven't started"],["أقل من سنة","Less than a year"],["من سنة لـ ٣ سنين","1 to 3 years"],["أكتر من ٣ سنين","More than 3 years"]]},
+  {id:"need", type:"multi",
+    title:{ar:"محتاج إيه بالظبط؟", en:"What exactly do you need?"},
+    sub:{ar:"تقدر تختار أكتر من حاجة.", en:"You can pick more than one."},
+    options:[["موقع للشركة","Company website"],["متجر إلكتروني","Online store"],["تطبيق موبايل","Mobile app"],["سيستم إدارة (حسابات، مخزون، عملاء، حجوزات)","Management system (accounting, inventory, customers, bookings)"],["مش متأكد، محتاج حد يقولي إيه الأنسب","Not sure, I need advice on what fits"]]},
+  {id:"status", type:"single",
+    title:{ar:"الوضع عندك دلوقتي عامل إزاي؟", en:"What's your current situation?"},
+    options:[["هبدأ من الصفر","Starting from scratch"],["عندي موقع أو تطبيق ومحتاج أطوّره أو أصلّحه","I have a site or app that needs improving or fixing"],["الشغل ماشي على إكسل أو ورق أو واتساب وعايز أنظّمه","I run on Excel, paper or WhatsApp and want to organize it"]]},
+  {id:"problem", type:"textarea",
+    title:{ar:"احكيلي المشكلة اللي عايز تحلها بالتفصيل على قد ما تقدر", en:"Tell me the problem you want to solve, in as much detail as you can"},
+    placeholder:{ar:"مثلاً: الطلبات بتضيع على الواتساب، أو مش عارف أتابع المخزون، أو العملاء مش لاقيني على جوجل", en:"e.g. Orders get lost on WhatsApp, I can't track inventory, or customers can't find me on Google"}},
+  {id:"goal", type:"textarea", optional:true,
+    title:{ar:"لو المشروع ده اتعمل صح، إيه اللي هيتغير في شغلك؟", en:"If this project is done right, what will change in your work?"},
+    placeholder:{ar:"مثلاً: هوفّر ساعتين في اليوم، أو الطلبات هتزيد", en:"e.g. I'll save two hours a day, or orders will grow"}},
+  {id:"budget", type:"single",
+    title:{ar:"الميزانية اللي في دماغك للمشروع؟", en:"What budget do you have in mind?"},
+    options:[["أقل من ٤٠٠ دولار","Less than $400","أقل من ٢٢ ألف جنيه","Less than EGP 22,000"],
+             ["من ٤٠٠ لـ ١,٠٠٠ دولار","$400 – $1,000","من ٢٢ لـ ٥٤ ألف جنيه","EGP 22,000 – 54,000"],
+             ["من ١,٠٠٠ لـ ٢,٠٠٠ دولار","$1,000 – $2,000","من ٥٤ لـ ١٠٩ ألف جنيه","EGP 54,000 – 109,000"],
+             ["أكتر من ٢,٠٠٠ دولار","More than $2,000","أكتر من ١٠٩ ألف جنيه","More than EGP 109,000"],
+             ["لسه مش محدد، محتاج أعرف التكلفة الأول","Not decided yet, I need to know the cost first"]]},
+  {id:"when", type:"single",
+    title:{ar:"عايز تبدأ إمتى؟", en:"When do you want to start?"},
+    options:[["فورًا","Right away"],["خلال شهر","Within a month"],["خلال ٢ لـ ٣ شهور","In 2–3 months"],["لسه بستكشف","Still exploring"]]},
+  {id:"phone", type:"phone", last:true,
+    title:{ar:"رقم الواتساب بتاعك؟", en:"What's your WhatsApp number?"},
+    sub:{ar:"لو إنت برا مصر اكتب الرقم بكود الدولة.", en:"If you're outside Egypt, include the country code."},
+    placeholder:{ar:"01xxxxxxxxx", en:"01xxxxxxxxx"}}
+];
+
+/* ===== Logic ===== */
+const $ = id => document.getElementById(id);
+const AR = d => String(d).replace(/\d/g, x => "٠١٢٣٤٥٦٧٨٩"[x]);
+const LET = "ABCDEFGH";
+const answers = {}, other = {};   // single: index | multi: [index] | text: string
+let i = 0;
+let lang = CONFIG.defaultLang==="auto" ? ((navigator.language||"ar").toLowerCase().startsWith("ar")?"ar":"en") : CONFIG.defaultLang;
+const T = x => (x && typeof x==="object" && !Array.isArray(x)) ? x[lang] : x;
+const opt = (o,k) => ({label:o[lang==="ar"?0:1], sub:o[2]?o[lang==="ar"?2:3]:""});
+
+function setLang(l){
+  lang=l; document.documentElement.lang=l; document.documentElement.dir=l==="ar"?"rtl":"ltr";
+  $("brand").textContent=CONFIG.brand; $("lang").textContent=UI[l].toggle; render();
+}
+function name1(){ return (answers.name||"").trim().split(" ")[0] || (lang==="ar"?"صديقي":"there"); }
+function valid(s){
+  const a=answers[s.id];
+  if(s.type==="multi") return Array.isArray(a)&&a.length>0;
+  if(s.type==="single") return a!==undefined && (a<s.options.length || (other[s.id]||"").trim().length>0);
+  if(s.type==="phone") return /^\+?[\d\s-]{8,}$/.test((a||"").trim());
+  return s.optional || (a||"").trim().length>0;
+}
+
+function render(){
+  const s=STEPS[i], u=UI[lang], n=STEPS.length;
+  $("count").textContent = (lang==="ar"?AR(i+1):i+1)+" "+u.of+" "+(lang==="ar"?AR(n):n);
+  $("fill").style.width=((i+1)/n*100)+"%";
+  let h=`<h1>${T(s.title).replace("{name}",name1())}${s.optional?`<span class="tag">${u.optional}</span>`:""}</h1>`;
+  h+= s.sub ? `<p class="sub">${T(s.sub)}</p>` : `<div style="height:24px"></div>`;
+
+  if(s.type==="single"||s.type==="multi"){
+    const list=[...s.options.map(opt)]; if(s.other) list.push({label:u.other,sub:""});
+    list.forEach((o,k)=>{
+      const a=answers[s.id];
+      const on = s.type==="multi" ? (a||[]).includes(k) : a===k;
+      h+=`<button class="opt ${on?"on":""}" data-k="${k}"><span class="k">${LET[k]}</span><span>${o.label}${o.sub?`<small>${o.sub}</small>`:""}</span></button>`;
+    });
+    if(s.other && answers[s.id]===s.options.length)
+      h+=`<input class="inp" id="oth" placeholder="${T(s.otherPlaceholder)}" value="${(other[s.id]||"").replace(/"/g,"&quot;")}">`;
+  } else if(s.type==="textarea"){
+    h+=`<textarea class="inp" id="f" placeholder="${T(s.placeholder)}">${answers[s.id]||""}</textarea>`;
+  } else {
+    const ph = s.type==="phone" ? `type="tel" inputmode="tel" dir="ltr" style="text-align:${lang==="ar"?"right":"left"}"` : "";
+    h+=`<input class="inp" id="f" ${ph} placeholder="${T(s.placeholder)}" value="${(answers[s.id]||"").replace(/"/g,"&quot;")}">`;
+  }
+  h+=`<p class="err" id="err"></p><div class="actions"><button class="next" id="nx">${s.last?u.send:(s.optional?u.skip:u.next)}</button>${i>0?`<button class="back" id="bk">${u.back}</button>`:""}</div>`;
+  $("main").innerHTML=h;
+
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k;
+    if(s.type==="multi"){const a=answers[s.id]=answers[s.id]||[];const x=a.indexOf(k);x>-1?a.splice(x,1):a.push(k);}
+    else answers[s.id]=k;
+    render();
+    if(s.type==="single" && k<s.options.length) setTimeout(next,220);
+  });
+  const f=$("f"); if(f){f.oninput=()=>{answers[s.id]=f.value;upd();}; f.onkeydown=e=>{if(e.key==="Enter"&&s.type!=="textarea"){e.preventDefault();next();}}; if(innerWidth>700)f.focus();}
+  const o=$("oth"); if(o){o.oninput=()=>{other[s.id]=o.value;upd();}; o.focus();}
+  $("nx").onclick=next; if($("bk"))$("bk").onclick=()=>{i--;render();};
+  upd();
+}
+function upd(){const s=STEPS[i],b=$("nx");if(!b)return;b.disabled=!valid(s);if(s.optional&&!s.last)b.textContent=(answers[s.id]||"").trim()?UI[lang].next:UI[lang].skip;}
+
+function next(){
+  const s=STEPS[i];
+  if(!valid(s)){$("err").textContent=s.type==="phone"?UI[lang].errPhone:UI[lang].errAns;return;}
+  if(i<STEPS.length-1){i++;render();}else submit();
+}
+
+function plain(s){
+  const a=answers[s.id];
+  if(s.type==="single") return a===s.options.length ? other[s.id] : s.options[a][lang==="ar"?0:1];
+  if(s.type==="multi") return (a||[]).map(k=>s.options[k][lang==="ar"?0:1]).join(", ");
+  return (a||"").trim();
+}
+async function submit(){
+  const u=UI[lang], data={};
+  STEPS.forEach(s=>data[s.id]=plain(s));
+  data.lang=lang; data.submittedAt=new Date().toISOString();
+  $("nx").disabled=true; $("nx").textContent=u.sending;
+  if(CONFIG.webhookUrl){
+    try{await fetch(CONFIG.webhookUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(data)});}
+    catch(e){$("err").textContent=u.errSend;$("nx").disabled=false;$("nx").textContent=u.send;return;}
+  }
+  $("fill").style.width="100%"; $("count").textContent="";
+  $("main").innerHTML=`<div class="done"><h1>${u.thankTitle}</h1><p class="sub">${u.thankText}</p></div>`;
+  if(CONFIG.whatsappNumber){
+    const msg="📋 New lead / عميل جديد\n\n"+STEPS.map(s=>`${T(s.title).replace("{name}",data.name)}\n${data[s.id]||"-"}`).join("\n\n");
+    window.open(`https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(msg)}`,"_blank");
+  }
+}
+$("lang").onclick=()=>setLang(lang==="ar"?"en":"ar");
+setLang(lang);
+</script>
+</body>
+</html>
