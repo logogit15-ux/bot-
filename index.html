@@ -58,10 +58,10 @@ const CONFIG = {
 const UI = {
   ar:{next:"التالي", skip:"تخطّي", back:"الخلف", optional:"اختياري", send:"ابعت إجاباتي", sending:"جاري الإرسال...",
       of:"من", other:"حاجة تانية", errAns:"من فضلك جاوب الأول", errPhone:"اكتب رقم واتساب صحيح", errSend:"حصلت مشكلة في الإرسال، جرّب تاني.",
-      thankTitle:"تمام، وصلتنا إجاباتك ✅", thankText:"هنراجع كل حاجة ونتواصل معاك على الواتساب قريب.", toggle:"English", num:true},
+      thankTitle:"تمام، وصلتنا إجاباتك", thankText:"هنراجع كل حاجة ونتواصل معاك على الواتساب قريب.", toggle:"English", num:true},
   en:{next:"Next", skip:"Skip", back:"Back", optional:"Optional", send:"Send my answers", sending:"Sending...",
       of:"of", other:"Something else", errAns:"Please answer first", errPhone:"Enter a valid WhatsApp number", errSend:"Something went wrong, please try again.",
-      thankTitle:"Got it, your answers are in ✅", thankText:"We'll review everything and reach out on WhatsApp soon.", toggle:"عربي", num:false}
+      thankTitle:"Got it, your answers are in", thankText:"We'll review everything and reach out on WhatsApp soon.", toggle:"عربي", num:false}
 };
 
 /* options: [عربي, English, subعربي?, subEnglish?]  */
@@ -81,22 +81,16 @@ const STEPS = [
     sub:{ar:"تقدر تختار أكتر من حاجة.", en:"You can pick more than one."},
     options:[["موقع للشركة","Company website"],["متجر إلكتروني","Online store"],["مش متأكد، محتاج حد يقولي إيه الأنسب","Not sure, I need advice on what fits"]]},
   {id:"stack", type:"single",
-    title:{ar:"كود ولا نو كود؟ ( ‏if / else‏ )", en:"Code or No-Code? ( if / else )"},
-    options:[["💻 كود (Custom Code)","💻 Custom Code","تحكم كامل ومرونة، وبيكبر معاك لأي حجم","Full control and flexibility, scales with you"],
-             ["⚡ نو كود (No-Code)","⚡ No-Code","أسرع وأرخص للبداية","Faster and cheaper to start"],
-             ["if (not_sure) { ask_dev(); }","if (not_sure) { ask_dev(); }","مش متأكد، قولّي إيه الأنسب","Not sure, tell me what fits best"]]},
-  {id:"status", type:"single",
-    title:{ar:"الوضع عندك دلوقتي عامل إزاي؟", en:"What's your current situation?"},
-    options:[["هبدأ من الصفر","Starting from scratch"],["عندي موقع أو تطبيق ومحتاج أطوّره أو أصلّحه","I have a site or app that needs improving or fixing"]]},
-  {id:"goal", type:"textarea", optional:true,
-    title:{ar:"لو المشروع ده اتعمل صح، إيه اللي هيتغير في شغلك؟", en:"If this project is done right, what will change in your work?"},
-    placeholder:{ar:"مثلاً: هوفّر ساعتين في اليوم، أو الطلبات هتزيد", en:"e.g. I'll save two hours a day, or orders will grow"}},
+    title:{ar:"كود ولا نو كود؟", en:"Code or No-Code?"},
+    options:[["كود (Custom Code)","Custom Code","تحكم كامل ومرونة، وبيكبر معاك لأي حجم","Full control and flexibility, scales with you"],
+             ["نو كود (No-Code)","No-Code","أسرع وأرخص للبداية","Faster and cheaper to start"],
+             ["مش متأكد، قولّي إيه الأنسب","Not sure, tell me what fits best"]]},
   {id:"budget", type:"single",
     title:{ar:"الميزانية اللي في دماغك للمشروع؟", en:"What budget do you have in mind?"},
-    options:[["من ٢٥٠ لـ ٤٠٠ دولار","$250 – $400","من ١٤ لـ ٢٢ ألف جنيه","EGP 14,000 – 22,000"],
-             ["من ٤٠٠ لـ ١,٠٠٠ دولار","$400 – $1,000","من ٢٢ لـ ٥٤ ألف جنيه","EGP 22,000 – 54,000"],
-             ["من ١,٠٠٠ لـ ٢,٠٠٠ دولار","$1,000 – $2,000","من ٥٤ لـ ١٠٩ ألف جنيه","EGP 54,000 – 109,000"],
-             ["أكتر من ٢,٠٠٠ دولار","More than $2,000","أكتر من ١٠٩ ألف جنيه","More than EGP 109,000"],
+    options:[["من ١٥٠ لـ ٣٠٠ دولار","$150 – $300"],
+             ["من ٣٠٠ لـ ٧٠٠ دولار","$300 – $700"],
+             ["من ٧٠٠ لـ ١,٥٠٠ دولار","$700 – $1,500"],
+             ["أكتر من ١,٥٠٠ دولار","More than $1,500"],
              ["لسه مش محدد، محتاج أعرف التكلفة الأول","Not decided yet, I need to know the cost first"]]},
   {id:"when", type:"single",
     title:{ar:"عايز تبدأ إمتى؟", en:"When do you want to start?"},
@@ -160,7 +154,6 @@ function render(){
     if(s.type==="multi"){const a=answers[s.id]=answers[s.id]||[];const x=a.indexOf(k);x>-1?a.splice(x,1):a.push(k);}
     else answers[s.id]=k;
     render();
-    if(s.type==="single" && k<s.options.length) setTimeout(next,220);
   });
   const f=$("f"); if(f){f.oninput=()=>{answers[s.id]=f.value;upd();}; f.onkeydown=e=>{if(e.key==="Enter"&&s.type!=="textarea"){e.preventDefault();next();}}; if(innerWidth>700)f.focus();}
   const o=$("oth"); if(o){o.oninput=()=>{other[s.id]=o.value;upd();}; o.focus();}
@@ -194,7 +187,7 @@ async function submit(){
   $("main").innerHTML=`<div class="done"><h1>${u.thankTitle}</h1><p class="sub">${u.thankText}</p></div>`;
   // لو في webhookUrl (Google Sheets) الإجابات بتوصلك لوحدها، فمنفتحش واتساب للعميل
   if(CONFIG.whatsappNumber && !CONFIG.webhookUrl){
-    const msg="📋 New lead / عميل جديد\n\n"+STEPS.map(s=>`${T(s.title).replace("{name}",data.name)}\n${data[s.id]||"-"}`).join("\n\n");
+    const msg="New lead / عميل جديد\n\n"+STEPS.map(s=>`${T(s.title).replace("{name}",data.name)}\n${data[s.id]||"-"}`).join("\n\n");
     if(CONFIG.callmebotApiKey){
       // إرسال تلقائي لواتساب صاحبة الموقع، والعميل مش بيشوف حاجة
       const url=`https://api.callmebot.com/whatsapp.php?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(msg)}&apikey=${CONFIG.callmebotApiKey}`;
